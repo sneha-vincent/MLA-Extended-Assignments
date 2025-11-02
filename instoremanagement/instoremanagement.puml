@@ -1,0 +1,55 @@
+@startuml
+title Retail company Architecture
+
+top to bottom direction
+
+actor Customer
+actor StoreStaff
+
+rectangle "Reverse Proxy\n(Nginx / Envoy)" as Proxy
+together{
+package "GraphQL Services" {
+    rectangle "Product Catalog" as Catalog
+    rectangle "CRM Service" as CRM
+    rectangle "Analytics Service)" as Analytics
+}
+
+package "REST Services" {
+    rectangle "Inventory Service" as Inventory
+    rectangle "Sales / Checkout Service" as Sales
+    rectangle "Payment Service" as Payment
+}
+}
+rectangle "Message Broker\n(Kafka / RabbitMQ)" as Broker
+database "Catalog DB" as CatalogDB
+database "CRM DB" as CRMDB
+database "Orders DB" as OrdersDB
+database "Inventory DB" as InventoryDB
+
+Customer --> Proxy : HTTPS Requests
+StoreStaff --> Proxy : POS
+Proxy --> Catalog : graphql/catalog/
+Proxy --> CRM : /graphql/crm
+Proxy --> Analytics : /graphql/analytics
+Proxy --> Inventory : /api/inventory
+Proxy --> Sales : /api/sales
+Proxy --> Payment : /api/payments
+Sales --> Broker : Publish Orders
+Inventory --> Broker : Publish Stock Updates
+Broker --> CRM : Consume Orders placed
+Catalog --> CatalogDB
+CRM --> CRMDB
+Sales --> OrdersDB
+Inventory --> InventoryDB
+
+note top of Proxy
+• Single public entry point  
+• Routes requests to correct end points
+• Handles authentication & load balancing
+end note
+
+note right of Broker
+Handles async events (orders, stock, analytics)
+end note
+
+@enduml
